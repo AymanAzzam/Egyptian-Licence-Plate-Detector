@@ -13,5 +13,7 @@ Image processing project with python and openCV.it detects the Egyption Plate an
 
 ### Team Members
 1.[Ayman Azzam](https://github.com/AymanAzzam).
+
 2.[Abdelrahman Elgamil](https://github.com/ajammil).
+
 3.Yousef Dawod.
