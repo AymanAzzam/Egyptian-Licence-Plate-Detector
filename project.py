@@ -1,22 +1,9 @@
+import cv2 as cv
 import numpy as np
-import cv2
-from matplotlib import pyplot as plt
-from math import pi
-from joblib import Parallel, delayed
-import multiprocessing
 import numba
 from numba import jit
 from commonfunctions import *
-import cv2 as cv2
-import cv2 as cv
-import os
-import argparse
-import math
 from tkinter import *
-from timeit import default_timer as timer
-from tkinter import messagebox
-
-
 
 @jit(nopython=True)
 def get_white_blue(image, aux):
@@ -55,20 +42,20 @@ def sum_range(aux, Xmin, Ymin, Xmax, Ymax):
     return res 
 
 def remove_noise(img):
-    blur = cv2.GaussianBlur(img, (3, 3), 0)
+    blur = cv.GaussianBlur(img, (3, 3), 0)
     return blur
 
 #working well with bimodal images (Fast Algo)
 def binarization_otsu(gray_img):
-    ret,bin_img = cv2.threshold(gray_img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    ret,bin_img = cv.threshold(gray_img,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
     return ret,bin_img
 
 def detect_edges(gray_img): #Sobel Edge detection
-    scale = 1; delta = 0; ddepth = cv2.CV_16S
-    grad_x = cv2.Sobel(gray_img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    grad_y = cv2.Sobel(gray_img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv2.BORDER_DEFAULT)
-    abs_grad_x = cv2.convertScaleAbs(grad_x); abs_grad_y = cv2.convertScaleAbs(grad_y)
-    return cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+    scale = 1; delta = 0; ddepth = cv.CV_16S
+    grad_x = cv.Sobel(gray_img, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
+    grad_y = cv.Sobel(gray_img, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
+    abs_grad_x = cv.convertScaleAbs(grad_x); abs_grad_y = cv.convertScaleAbs(grad_y)
+    return cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
 
 #depend on aspect ratio, center point of plate, plate color, far or not
 def plate_criteria(cum_white, cum_blue, x, y, w, h, aspect_min, aspect_max, far): 
@@ -84,9 +71,9 @@ def plate_criteria(cum_white, cum_blue, x, y, w, h, aspect_min, aspect_max, far)
 
 def plate_contour(img, bin_img, aspect_min, aspect_max, far): #Image should be BGR Image not RGB
     #Because Some version return 2 parameters and other return 3 parameters
-    major = cv2.__version__.split('.')[0]
-    if major == '3': img2, bounding_boxes, hierarchy= cv2.findContours(bin_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    else: bounding_boxes, hierarchy= cv2.findContours(bin_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    major = cv.__version__.split('.')[0]
+    if major == '3': img2, bounding_boxes, hierarchy= cv.findContours(bin_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    else: bounding_boxes, hierarchy= cv.findContours(bin_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
     aux = np.copy(img,np.int64); get_white_blue(img,aux)
 
@@ -94,7 +81,7 @@ def plate_contour(img, bin_img, aspect_min, aspect_max, far): #Image should be B
     cum_blue = np.cumsum(aux[:,:,1], axis = 0); cum_blue = np.cumsum(cum_blue, axis = 1).astype(np.int64)   #To Avoid overflow in sum_range
 
     for box in bounding_boxes:    
-        [x,y, w, h] = cv2.boundingRect(box)
+        [x,y, w, h] = cv.boundingRect(box)
         if(plate_criteria(cum_white, cum_blue, x, y, w, h,aspect_min, aspect_max, far)):
             if(y-h/4>=0):
                 return np.copy(img[y-int(h/4):y+h-1,x:x+w-1]),1
@@ -107,7 +94,7 @@ def resize_image(img):
         y = int(h*img.shape[0])
         x = int(h*img.shape[1])
         #print(x*y,img.shape[0]*img.shape[1])
-        img = cv2.resize(img, (x,y), interpolation = cv2.INTER_AREA)
+        img = cv.resize(img, (x,y), interpolation = cv.INTER_AREA)
     return img
 
 def rotate_blue(img):
@@ -122,8 +109,8 @@ def rotate_blue(img):
         y2+=1
     center = (int(w/2),int(h/2))
     angle = np.arctan((y2-y1)/(x2-x1))*180*7/22
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(img, rotation_matrix, (w, h),flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    rotation_matrix = cv.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv.warpAffine(img, rotation_matrix, (w, h),flags=cv.INTER_CUBIC, borderMode=cv.BORDER_REPLICATE)
     return rotated
 def crop_up(img):
     y = img.shape[0]
@@ -133,21 +120,20 @@ def crop_up(img):
             return img[i:y,0:img.shape[1]]
     return img
 def localization(img): #take BGR image and return BGR image
-    start = timer()
     img = resize_image(img)
     img = remove_noise(img)
-    gray_img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    gray_img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
     edges = detect_edges(gray_img)
   
     kernel = np.ones((5,5),np.uint8)
-    closing = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+    closing = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel)
 
     ret,bin_img = binarization_otsu(closing)
 
     plate_area_img,flag = plate_contour(img, bin_img, 1.4, 2.5, 0.01) 
 
-    plate_area_img_bin = cv2.adaptiveThreshold(cv2.cvtColor(255-plate_area_img,cv2.COLOR_BGR2GRAY),255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,8)
+    plate_area_img_bin = cv.adaptiveThreshold(cv.cvtColor(255-plate_area_img,cv.COLOR_BGR2GRAY),255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,11,8)
 
     plate_img,flag2 = plate_contour(plate_area_img, plate_area_img_bin, 1, 2.1, 0.1) 
     cropped = np.copy(plate_img)
@@ -161,13 +147,13 @@ def localization(img): #take BGR image and return BGR image
     #plt.imshow(bin_img,cmap = 'gray')
     #plt.show()
 
-    #plt.imshow(cv2.cvtColor(plate_area_img,cv2.COLOR_BGR2RGB))
+    #plt.imshow(cv.cvtColor(plate_area_img,cv.COLOR_BGR2RGB))
     #plt.show()
 
     #plt.imshow(plate_area_img_bin,cmap = 'gray')
     #plt.show()
 
-    #plt.imshow(cv2.cvtColor(plate_img,cv2.COLOR_BGR2RGB))
+    #plt.imshow(cv.cvtColor(plate_img,cv.COLOR_BGR2RGB))
     #plt.show()
     
     return cropped,flag
@@ -188,7 +174,7 @@ def sort_contours(cnts, method="left-to-right"):
 
 	# construct the list of bounding boxes and sort them from top to
 	# bottom
-	boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+	boundingBoxes = [cv.boundingRect(c) for c in cnts]
 	(cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
 		key=lambda b:b[1][i], reverse=reverse))
 
@@ -219,7 +205,7 @@ class character_j:
     def __init__(self, char, template = '', img = None):
         self.char = char
         if img is None:
-            self.template = cv2.imread(template, 0)
+            self.template = cv.imread(template, 0)
 #             self.template=cv.adaptiveThreshold(self.template, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 75, 13);
         else:
             self.template = img
@@ -262,9 +248,9 @@ histRange = (0, 1) # the upper boundary is exclusive
 def buildDB():
 	global dataBase 
 	database = []
-	hamza = character_j('hamza','hamza1.jpg')
-	no2taB = character_j('no2taB','no2ta1noon.jpg')
-	no2taG = character_j('no2taG','no2ta6gem.jpg')
+	hamza = character_j('hamza','Recognition_Pictures/hamza1.jpg')
+	no2taB = character_j('no2taB','Recognition_Pictures/no2ta1noon.jpg')
+	no2taG = character_j('no2taG','Recognition_Pictures/no2ta6gem.jpg')
 	hamza.template = my_resize_j(hamza.template,width_j,height_j)
 	no2taB.template = my_resize_j(no2taB.template,width_j,height_j)
 	no2taG.template = my_resize_j(no2taG.template,width_j,height_j)
@@ -287,7 +273,7 @@ def isMiniLiter(imgI):
 	    hist1=cv.calcHist([temp1],[0],None,[256],[0,256]) 
 	    hist2=cv.calcHist([temp2],[0],None,[256],[0,256]) 
 	    r =4
-	    r = cv2.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
+	    r = cv.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
 	    rCorr = cal_corr_j(letter.corr,l.corr,letter.col_sum,l.col_sum)
 	    if(rCorr>.75 and r > .5):
 	        return True
@@ -295,13 +281,13 @@ def isMiniLiter(imgI):
 def buildDB_b():
 	global dataBase_b
 	dataBase_b = []
-	bar1 = character_j('bar1','bar1.jpg')
-	bar2 = character_j('bar2','bar2.jpg')
-	bar3 = character_j('bar3','bar3.jpg')
-	bar4 = character_j('bar4','bar4.jpg')
-	nesr1 = character_j('nesr1','nesr1.jpg')
-	nesr2 = character_j('nesr2','nesr2.jpg')
-	nesr3 = character_j('nesr3','nesr3.jpg')
+	bar1 = character_j('bar1','Recognition_Pictures/bar1.jpg')
+	bar2 = character_j('bar2','Recognition_Pictures/bar2.jpg')
+	bar3 = character_j('bar3','Recognition_Pictures/bar3.jpg')
+	bar4 = character_j('bar4','Recognition_Pictures/bar4.jpg')
+	nesr1 = character_j('nesr1','Recognition_Pictures/nesr1.jpg')
+	nesr2 = character_j('nesr2','Recognition_Pictures/nesr2.jpg')
+	nesr3 = character_j('nesr3','Recognition_Pictures/nesr3.jpg')
 	bar1.template = my_resize_j(bar1.template,width_j,height_j)
 	bar2.template = my_resize_j(bar2.template,width_j,height_j)
 	bar3.template = my_resize_j(bar3.template,width_j,height_j)
@@ -334,7 +320,7 @@ def isBar(imgI):
         hist2=0
         hist1=cv.calcHist([temp1],[0],None,[256],[0,256]) 
         hist2=cv.calcHist([temp2],[0],None,[256],[0,256]) 
-        r = cv2.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
+        r = cv.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
         rCorr = cal_corr_j(letter.corr,l.corr,letter.col_sum,l.col_sum)
 #         print("corr",rCorr,r)
         if(rCorr>.8 and r > .8):
@@ -375,11 +361,11 @@ smallsImgs = []
 
 def main2(imgI):
     dim = (1404, 746)
-    imgI = cv2.resize(imgI, dim, interpolation = cv2.INTER_AREA)
+    imgI = cv.resize(imgI, dim, interpolation = cv.INTER_AREA)
     w = imgI.shape[0]
     h = imgI.shape[1]
-    imgB = cv2.blur(imgI,(10,10))
-    imgB = cv2.blur(imgB,(10,10))
+    imgB = cv.blur(imgI,(10,10))
+    imgB = cv.blur(imgB,(10,10))
     imgM= cv.medianBlur(imgB,5)
     imgO = cv.adaptiveThreshold(imgM, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 75, 13);
     k1=cv.getStructuringElement(cv.MORPH_RECT,(10,15))
@@ -476,7 +462,7 @@ class character:
     def __init__(self, char, template = '', img = None):
         self.char = char
         if img is None:
-            self.template = cv2.imread(template, 0)
+            self.template = cv.imread(template, 0)
 #             self.template=cv.adaptiveThreshold(self.template, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 75, 13);
         else:
             self.template = img
@@ -664,8 +650,8 @@ def cal_corr(corr_A, corr_B, A_sum, B_sum):
     return r
 def getSimilarity(img1, img2 ):
     dim = (120,120)
-    img1 = cv2.GaussianBlur(img1,(19,19),0)
-    img2 = cv2.GaussianBlur(img2,(19,19),0)
+    img1 = cv.GaussianBlur(img1,(19,19),0)
+    img2 = cv.GaussianBlur(img2,(19,19),0)
     img1 = cv.resize(img1, dim, interpolation = cv.INTER_AREA)
     img2 = cv.resize(img2, dim, interpolation = cv.INTER_AREA)
     ret2,img1 = cv.threshold(img1,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
@@ -714,7 +700,7 @@ def main4(imgs):
 def main5(fileName):
 	#open Camera
 	global string
-	cap = cv2.VideoCapture(fileName)
+	cap = cv.VideoCapture(fileName)
 	string = {}
 	# Check if camera opened successfully
 	if (cap.isOpened()== False): 
@@ -727,17 +713,17 @@ def main5(fileName):
 		if(img is not None):
 			plate,flag = localization(img)
 			if(flag):
-		#         show_images([cv2.cvtColor(plate,cv2.COLOR_BGR2RGB)])
-				outputStr=main4(main2(cv2.cvtColor(plate,cv2.COLOR_BGR2GRAY)))
+		#         show_images([cv.cvtColor(plate,cv.COLOR_BGR2RGB)])
+				outputStr=main4(main2(cv.cvtColor(plate,cv.COLOR_BGR2GRAY)))
 				print("plate is " + outputStr)
 
-			cv2.imshow("Localization",plate);
+			cv.imshow("Localization",plate);
 		else:
 			break
-		if cv2.waitKey(1) & 0xFF == ord('q'):
+		if cv.waitKey(1) & 0xFF == ord('q'):
 			break;
 
 	#close the camera and let it go then close all windows (no need for it while using waitKey)
 	cap.release();
-	cv2.destroyAllWindows();
+	cv.destroyAllWindows();
 	return outputStr
