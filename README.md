@@ -6,14 +6,14 @@ Image processing project with python and openCV.it detects the Egyption Plate an
 	All libraries (openCV, numpy, numba, tkinter).
 	
 ### How to use
-	Run "python run.py" in repo directory.
+	Run `python run.py` in repo directory.
 	Write video name (example 1.mp4).
 	Press OK.
 	Show the plate and view votes in terminal.
 
 ### Team Members
-1.[Ayman Azzam](https://github.com/AymanAzzam).
+1. [Ayman Azzam](https://github.com/AymanAzzam).
 
-2.[Abdelrahman Elgamil](https://github.com/ajammil).
+2. [Abdelrahman Elgamil](https://github.com/ajammil).
 
-3.Yousef Dawod.
+3. Yousef Dawod.
