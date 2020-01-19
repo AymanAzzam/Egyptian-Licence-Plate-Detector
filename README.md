@@ -12,6 +12,6 @@ Image processing project with python and openCV.it detects the Egyption Plate an
 	- Show the plate and view votes in terminal.
 
 ### Team Members
-	- [Ayman Azzam](https://github.com/AymanAzzam).
+	- [Ayman Azzam](https://github.com/AymanAzzam)
 	- [Abdelrahman Elgamil](https://github.com/ajammil).
 	- Yousef Dawod.
