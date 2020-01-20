@@ -1,4 +1,4 @@
-# Egyptian Plate Detector
+# Egyptian Licence Plate Detector
 Image processing project with python and openCV.it detects the Egyption Plate and show it then Recognize and extract the numbers and letters from it and print them in terminal.
 
 ### Requirements
