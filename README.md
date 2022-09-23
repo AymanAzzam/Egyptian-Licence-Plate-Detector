@@ -3,7 +3,7 @@ Image processing project with Python and openCV. it detects the Egyptian Licence
 
 ### Requirements
 	1. Python 3.
-	2. All libraries (openCV, numpy, numba, tkinter).
+	2. All libraries (openCV, numpy, numba, tkinter, scikit-image).
 	
 ### How to use
 	1. Run `python run.py` in repo directory.
