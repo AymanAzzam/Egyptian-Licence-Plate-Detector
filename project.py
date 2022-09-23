@@ -75,7 +75,7 @@ def plate_contour(img, bin_img, aspect_min, aspect_max, far): #Image should be B
     if major == '3': img2, bounding_boxes, hierarchy= cv.findContours(bin_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     else: bounding_boxes, hierarchy= cv.findContours(bin_img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
-    aux = np.copy(img,np.int64); get_white_blue(img,aux)
+    aux = np.copy(img); get_white_blue(img,aux)
 
     cum_white = np.cumsum(aux[:,:,0], axis = 0) ;cum_white = np.cumsum(cum_white, axis = 1).astype(np.int64) #To Avoid overflow in sum_range
     cum_blue = np.cumsum(aux[:,:,1], axis = 0); cum_blue = np.cumsum(cum_blue, axis = 1).astype(np.int64)   #To Avoid overflow in sum_range
