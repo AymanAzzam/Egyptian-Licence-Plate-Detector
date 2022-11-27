@@ -3,42 +3,9 @@ import numpy as np
 from numba import jit
 from commonfunctions import *
 from tkinter import *
-import os
-
-
-dataBase = []
-dataBase_b = []
-database_characters = []
+from consts import WIDTH_J, HEIGHT_J
+import math
 smalls = []
-videoPlateTexts = {}
-WIDTH_J = 60
-HEIGHT_J = 60
-WIDTH = 120
-HEIGHT = 120
-
-
-class character_j:
-    def __init__(self, char, template = '', img = None):
-        self.char = char
-        if img is None:
-            self.template = cv.imread(template, 0)
-        else:
-            self.template = img
-        self.col_sum = np.zeros(shape=(HEIGHT_J,WIDTH_J))
-        self.corr = 0
-
-
-class character:
-    def __init__(self, char, template = '', img = None):
-        self.char = char
-        if img is None:
-            self.template = cv.imread(template, 0)
-#             self.template=cv.adaptiveThreshold(self.template, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 75, 13);
-        else:
-            self.template = img
-#             self.template=cv.adaptiveThreshold(self.template, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 75, 13);
-        self.col_sum = np.zeros(shape=(HEIGHT_J,WIDTH_J))
-        self.corr = 0
 
 
 @jit(nopython=True)
@@ -185,21 +152,6 @@ def localization(img): #take BGR image and return BGR image
         #rotated = rotate_blue(plate_img)
         cropped = crop_up(plate_img)
 
-    #plt.imshow(closing,cmap = 'gray')
-    #plt.show()
-
-    #plt.imshow(bin_img,cmap = 'gray')
-    #plt.show()
-
-    #plt.imshow(cv.cvtColor(plate_area_img,cv.COLOR_BGR2RGB))
-    #plt.show()
-
-    #plt.imshow(plate_area_img_bin,cmap = 'gray')
-    #plt.show()
-
-    #plt.imshow(cv.cvtColor(plate_img,cv.COLOR_BGR2RGB))
-    #plt.show()
-    
     return cropped,flag
 
 
@@ -227,80 +179,11 @@ def sort_contours(cnts, method="left-to-right"):
 	return (cnts, boundingBoxes)
 
 
-@jit(nopython = True)
-def char_calculations_j(A, WIDTH_J, HEIGHT_J):
-    A_mean = A.mean()
-    col_A = 0
-    corr_A = 0
-    sum_list = np.zeros(shape=(HEIGHT_J,WIDTH_J))
-    img_row = 0
-    while img_row < HEIGHT_J:
-        img_col = 0
-        while img_col < WIDTH_J:
-            col_A += (A[img_row, img_col] - A_mean) ** 2
-            sum_list[img_row][img_col] = abs(A[img_row, img_col] - A_mean)
-            img_col = img_col + 1
-        corr_A += col_A
-        col_A = 0
-        img_row = img_row + 1  
-    return corr_A,sum_list  
-
-
-@jit(nopython = True)
-def cal_corr_j(corr_A, corr_B, A_sum, B_sum):
-    corr_both = np.multiply(A_sum, B_sum)
-    corr_both = corr_both.sum()
-    r = corr_both / math.sqrt(corr_A * corr_B)
-    return r
-
-
-@jit(nopython = True)
-def my_resize_j(img, w, h):
-    new_img = np.zeros(shape=(w, h))
-    WIDTH_J,HEIGHT_J = img.shape
-    Xwmin = 0
-    Ywmin = 0
-    Xwmax = WIDTH_J - 1
-    Ywmax = HEIGHT_J - 1
-    Xvmin = 0
-    Yvmin = 0
-    Xvmax = w - 1
-    Yvmax = h - 1
-    Sx = (Xvmax - Xvmin)/(Xwmax - Xwmin)
-    Sy = (Yvmax - Yvmin)/(Ywmax - Ywmin)
-    for i in range(HEIGHT_J):
-        new_i = int(Yvmin + (i - Ywmin) * Sy)
-        for j in range(WIDTH_J):
-            new_j = int(Xvmin + (j - Xwmin) * Sx)
-            new_img[new_j][new_i] = img[j][i]
-            new_img[new_j][new_i] = img[j][i]
-            new_img[new_j][new_i] = img[j][i]
-    return new_img    
-
-
-def buildDB():
-	hamza = character_j('hamza','Recognition_Pictures/hamza1.jpg')
-	no2taB = character_j('no2taB','Recognition_Pictures/no2ta1noon.jpg')
-	no2taG = character_j('no2taG','Recognition_Pictures/no2ta6gem.jpg')
-
-	hamza.template = my_resize_j(hamza.template,WIDTH_J,HEIGHT_J)
-	no2taB.template = my_resize_j(no2taB.template,WIDTH_J,HEIGHT_J)
-	no2taG.template = my_resize_j(no2taG.template,WIDTH_J,HEIGHT_J)
-    
-	hamza.corr, hamza.col_sum = char_calculations_j(hamza.template,HEIGHT_J,WIDTH_J)
-	no2taB.corr, no2taB.col_sum = char_calculations_j(no2taB.template,HEIGHT_J,WIDTH_J)
-	no2taG.corr, no2taG.col_sum = char_calculations_j(no2taG.template,HEIGHT_J,WIDTH_J)
-
-	dataBase.append(hamza)
-	dataBase.append(no2taB)
-	dataBase.append(no2taG)
-
-
-def isMiniLiter(imgI):
-    letter = character_j('unk',img = imgI)
-    letter.template = my_resize_j(letter.template,WIDTH_J,HEIGHT_J)
-    letter.corr, letter.col_sum = char_calculations_j(letter.template,HEIGHT_J,WIDTH_J)
-    for l in dataBase:
+def isMiniLiter(imgI, hamzaNo2taDB):
+    letter = character('unk',img = imgI)
+    letter.template = my_resize(letter.template,WIDTH_J,HEIGHT_J)
+    letter.corr, letter.col_sum = char_calculations(letter.template,HEIGHT_J,WIDTH_J)
+    for l in hamzaNo2taDB:
         temp1 = letter.template.astype(np.float32)
         temp2 = l.template.astype(np.float32)
         hist1=0
@@ -309,33 +192,17 @@ def isMiniLiter(imgI):
         hist2=cv.calcHist([temp2],[0],None,[256],[0,256]) 
         r =4
         r = cv.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
-        rCorr = cal_corr_j(letter.corr,l.corr,letter.col_sum,l.col_sum)
+        rCorr = cal_corr(letter.corr,l.corr,letter.col_sum,l.col_sum)
         if(rCorr>.75 and r > .5):
             return True
         return False
 
 
-def buildDB_b():
-    path = 'database/bar/'
-    for filename in os.listdir(path):
-        bar = character_j(filename.split('.')[0], path + filename)
-        bar.template = my_resize_j(bar.template,WIDTH_J,HEIGHT_J)
-        bar.corr, bar.col_sum = char_calculations_j(bar .template,HEIGHT_J,WIDTH_J)
-        dataBase_b.append(bar)
-	
-    path = 'database/nesr/'
-    for filename in os.listdir(path):
-        nesr = character_j(filename.split('.')[0], path + filename)
-        nesr.template = my_resize_j(nesr.template,WIDTH_J,HEIGHT_J)
-        nesr.corr, nesr.col_sum = char_calculations_j(nesr .template,HEIGHT_J,WIDTH_J)
-        dataBase_b.append(nesr)	
-
-
-def isBar(imgI):
-    letter = character_j('unk',img = imgI)
-    letter.template = my_resize_j(letter.template,WIDTH_J,HEIGHT_J)
-    letter.corr, letter.col_sum =char_calculations_j(letter.template,HEIGHT_J,WIDTH_J)
-    for l in dataBase_b:
+def isBar(imgI, barNesrDB):
+    letter = character('unk',img = imgI)
+    letter.template = my_resize(letter.template,WIDTH_J,HEIGHT_J)
+    letter.corr, letter.col_sum =char_calculations(letter.template,HEIGHT_J,WIDTH_J)
+    for l in barNesrDB:
         temp1 = letter.template.astype(np.float32)
         temp2 = l.template.astype(np.float32)
         hist1=0
@@ -343,7 +210,7 @@ def isBar(imgI):
         hist1=cv.calcHist([temp1],[0],None,[256],[0,256]) 
         hist2=cv.calcHist([temp2],[0],None,[256],[0,256]) 
         r = cv.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
-        rCorr = cal_corr_j(letter.corr,l.corr,letter.col_sum,l.col_sum)
+        rCorr = cal_corr(letter.corr,l.corr,letter.col_sum,l.col_sum)
         if(rCorr>.8 and r > .8):
             return True
     return False
@@ -377,7 +244,7 @@ def intersection(a,b):
     return True
 
 
-def get_chars_images_from_plate_image(imgI):
+def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
     dim = (1404, 746)
     imgI = cv.resize(imgI, dim, interpolation = cv.INTER_AREA)
     w = imgI.shape[0]
@@ -411,7 +278,7 @@ def get_chars_images_from_plate_image(imgI):
                     T = True
                     miniImg = np.copy(imgI[y:y+h,x:x+h])
                     if miniImg is not None:
-                        if(isMiniLiter(miniImg)):
+                        if(isMiniLiter(miniImg, hamzaNo2taDB)):
                             minY = min(y,r[1])                    
                             maxH = max(y+h,r[1]+r[3])-minY
                             minX = min(x,r[0])                    
@@ -439,194 +306,9 @@ def get_chars_images_from_plate_image(imgI):
         imgX = None
         imgX = np.copy(imgI[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]]);
         if imgX is not None:
-            if(not isBar(imgX)):
+            if(not isBar(imgX, barNesrDB)):
                 imgs.append(imgX)
     return imgs
-
-
-@jit(nopython=True,parallel=True)
-def char_calculations(A, WIDTH, HEIGHT):
-    A_mean = A.mean()
-    col_A = 0
-    corr_A = 0
-    sum_list = np.zeros(shape=(HEIGHT,WIDTH))
-    img_row = 0
-    while img_row < HEIGHT:
-        img_col = 0
-        while img_col < WIDTH:
-            col_A += (A[img_row, img_col] - A_mean) ** 2
-            sum_list[img_row][img_col] = abs(A[img_row, img_col] - A_mean)
-            img_col = img_col + 1
-        corr_A += col_A
-        col_A = 0
-        img_row = img_row + 1  
-    return corr_A,sum_list  
-
-
-def buildDB_D():
-	Alf = character("alf", 'Final_All_pgm_charachters_inNumbersSequence_new/alf3.jpg')
-	Alf2 = character("alf", 'Final_All_pgm_charachters_inNumbersSequence_new/alf5.png')
-	Sen = character("sen", 'Final_All_pgm_charachters_inNumbersSequence_new/sen.jpg')
-	Non = character("non", 'Final_All_pgm_charachters_inNumbersSequence_new/non2.png')
-	Non2 = character("non", 'Final_All_pgm_charachters_inNumbersSequence_new/non5.png')
-	Yeh = character("yeh", 'Final_All_pgm_charachters_inNumbersSequence_new/yeh.jpg')
-	Lam = character("lam", 'Final_All_pgm_charachters_inNumbersSequence_new/lam3.jpg')
-	Lam2 = character("lam", 'Final_All_pgm_charachters_inNumbersSequence_new/lam.png')
-	Bih = character("bih", 'Final_All_pgm_charachters_inNumbersSequence_new/30.jpg')
-	Dal = character("dal", 'Final_All_pgm_charachters_inNumbersSequence_new/32.jpg')
-	Dal2 = character("dal", 'Final_All_pgm_charachters_inNumbersSequence_new/dal4.jpg')
-	Reh = character("reh", 'Final_All_pgm_charachters_inNumbersSequence_new/36.jpg')
-	Reh2 = character("reh", 'Final_All_pgm_charachters_inNumbersSequence_new/reh5.png')
-	Kaf = character("kaf", 'Final_All_pgm_charachters_inNumbersSequence_new/86.jpg')
-	Kaf2 = character("kaf", 'Final_All_pgm_charachters_inNumbersSequence_new/88.jpg')
-	Mim = character("mim", 'Final_All_pgm_charachters_inNumbersSequence_new/33.jpg')
-	Waw = character("waw", 'Final_All_pgm_charachters_inNumbersSequence_new/7.jpg')
-	Waw2 = character("waw", 'Final_All_pgm_charachters_inNumbersSequence_new/waw2.jpg')
-	Tah = character("tah", 'Final_All_pgm_charachters_inNumbersSequence_new/82.jpg')
-	Sad = character("sad", 'Final_All_pgm_charachters_inNumbersSequence_new/42.jpg')
-	Gem = character("gem", 'Final_All_pgm_charachters_inNumbersSequence_new/102.jpg')
-	Ein = character("ein", 'Final_All_pgm_charachters_inNumbersSequence_new/ein.png')
-	Heh = character("heh", 'Final_All_pgm_charachters_inNumbersSequence_new/heh2.jpg')
-	Heh2 = character("heh", 'Final_All_pgm_charachters_inNumbersSequence_new/heh3.png')
-	Heh3 = character("heh", 'Final_All_pgm_charachters_inNumbersSequence_new/heh4.png')
-	Fih = character("Fih", 'Final_All_pgm_charachters_inNumbersSequence_new/fih3.png')
-	Fih2 = character("Fih", 'Final_All_pgm_charachters_inNumbersSequence_new/fih2.jpg')
-	Yeh = character("yeh", 'Final_All_pgm_charachters_inNumbersSequence_new/yeh.jpg')
-
-	dim = (WIDTH,HEIGHT)
-	Alf.template = cv.resize(Alf.template, dim, interpolation = cv.INTER_AREA)
-	Alf2.template = cv.resize(Alf2.template, dim, interpolation = cv.INTER_AREA)
-	Sen.template = cv.resize(Sen.template , dim, interpolation = cv.INTER_AREA)
-	Non.template = cv.resize(Non.template , dim, interpolation = cv.INTER_AREA)
-	Non2.template =cv.resize(Non2.template, dim, interpolation = cv.INTER_AREA)
-	Yeh.template = cv.resize(Yeh.template , dim, interpolation = cv.INTER_AREA)
-	Lam.template = cv.resize(Lam.template , dim, interpolation = cv.INTER_AREA)
-	Lam2.template =cv.resize(Lam2.template, dim, interpolation = cv.INTER_AREA)
-	Bih.template = cv.resize(Bih.template , dim, interpolation = cv.INTER_AREA)
-	Dal.template = cv.resize(Dal.template , dim, interpolation = cv.INTER_AREA)
-	Dal2.template =cv.resize(Dal2.template, dim, interpolation = cv.INTER_AREA)
-	Reh.template = cv.resize(Reh.template , dim, interpolation = cv.INTER_AREA)
-	Reh2.template =cv.resize(Reh2.template, dim, interpolation = cv.INTER_AREA)
-	Kaf.template = cv.resize(Kaf.template , dim, interpolation = cv.INTER_AREA)
-	Kaf2.template =cv.resize(Kaf2.template, dim, interpolation = cv.INTER_AREA)
-	Mim.template = cv.resize(Mim.template , dim, interpolation = cv.INTER_AREA)
-	Waw.template = cv.resize(Waw.template , dim, interpolation = cv.INTER_AREA)
-	Waw2.template =cv.resize(Waw2.template, dim, interpolation = cv.INTER_AREA)
-	Tah.template = cv.resize(Tah.template , dim, interpolation = cv.INTER_AREA)
-	Sad.template = cv.resize(Sad.template , dim, interpolation = cv.INTER_AREA)
-	Gem.template = cv.resize(Gem.template , dim, interpolation = cv.INTER_AREA)
-	Ein.template = cv.resize(Ein.template , dim, interpolation = cv.INTER_AREA)
-	Heh.template = cv.resize(Heh.template , dim, interpolation = cv.INTER_AREA)
-	Heh2.template =cv.resize(Heh2.template, dim, interpolation = cv.INTER_AREA)
-	Heh3.template =cv.resize(Heh3.template, dim, interpolation = cv.INTER_AREA)
-	Fih.template = cv.resize(Fih.template , dim, interpolation = cv.INTER_AREA)
-	Fih2.template =cv.resize(Fih2.template, dim, interpolation = cv.INTER_AREA)
-	Yeh.template = cv.resize(Yeh.template , dim, interpolation = cv.INTER_AREA)
-
-
-	Alf.corr, Alf.col_sum = char_calculations(Alf.template, HEIGHT, WIDTH)
-	Alf2.corr, Alf2.col_sum = char_calculations(Alf2.template, HEIGHT, WIDTH)
-	Sen.corr, Sen.col_sum = char_calculations(Sen.template, HEIGHT, WIDTH)
-	Non.corr, Non.col_sum = char_calculations(Non.template, HEIGHT, WIDTH)
-	Non2.corr, Non2.col_sum = char_calculations(Non2.template, HEIGHT, WIDTH)
-	Yeh.corr, Yeh.col_sum = char_calculations(Yeh.template, HEIGHT, WIDTH)
-	Lam.corr, Lam.col_sum = char_calculations(Lam.template, HEIGHT, WIDTH)
-	Lam2.corr, Lam2.col_sum = char_calculations(Lam2.template, HEIGHT, WIDTH)
-	Bih.corr, Bih.col_sum = char_calculations(Bih.template, HEIGHT, WIDTH)
-	Dal.corr, Dal.col_sum = char_calculations(Dal.template, HEIGHT, WIDTH)
-	Dal2.corr, Dal2.col_sum = char_calculations(Dal2.template, HEIGHT, WIDTH)
-	Reh.corr, Reh.col_sum = char_calculations(Reh.template, HEIGHT, WIDTH)
-	Reh2.corr, Reh2.col_sum = char_calculations(Reh2.template, HEIGHT, WIDTH)
-	Kaf.corr, Kaf.col_sum = char_calculations(Kaf.template, HEIGHT, WIDTH)
-	Kaf2.corr, Kaf2.col_sum = char_calculations(Kaf2.template, HEIGHT, WIDTH)
-	Mim.corr, Mim.col_sum = char_calculations(Mim.template, HEIGHT, WIDTH)
-	Waw.corr, Waw.col_sum = char_calculations(Waw.template, HEIGHT, WIDTH)
-	Waw2.corr, Waw2.col_sum = char_calculations(Waw2.template, HEIGHT, WIDTH)
-	Tah.corr, Tah.col_sum = char_calculations(Tah.template, HEIGHT, WIDTH)
-	Sad.corr, Sad.col_sum = char_calculations(Sad.template, HEIGHT, WIDTH)
-	Gem.corr, Gem.col_sum = char_calculations(Gem.template, HEIGHT, WIDTH)
-	Ein.corr, Ein.col_sum = char_calculations(Ein.template, HEIGHT, WIDTH)
-	Heh.corr, Heh.col_sum = char_calculations(Heh.template, HEIGHT, WIDTH)
-	Heh2.corr, Heh2.col_sum = char_calculations(Heh2.template, HEIGHT, WIDTH)
-	Heh3.corr, Heh3.col_sum = char_calculations(Heh3.template, HEIGHT, WIDTH)
-	Fih.corr, Fih.col_sum = char_calculations(Fih.template, HEIGHT, WIDTH)
-	Fih2.corr, Fih2.col_sum = char_calculations(Fih2.template, HEIGHT, WIDTH)
-	Yeh.corr, Yeh.col_sum = char_calculations(Yeh.template, HEIGHT, WIDTH)
-
-
-	# Numbers
-	One = character("1", 'Final_All_pgm_charachters_inNumbersSequence_new/3.jpg')
-	Two = character("2", 'Final_All_pgm_charachters_inNumbersSequence_new/4.jpg')
-	Three = character("3", 'Final_All_pgm_charachters_inNumbersSequence_new/8.jpg')
-	Four = character("4", 'Final_All_pgm_charachters_inNumbersSequence_new/11.jpg')
-	Five = character("5", 'Final_All_pgm_charachters_inNumbersSequence_new/15.jpg')
-	Six = character("6", 'Final_All_pgm_charachters_inNumbersSequence_new/18.jpg')
-	Seven = character("7", 'Final_All_pgm_charachters_inNumbersSequence_new/21.jpg')
-	Eight = character("8", 'Final_All_pgm_charachters_inNumbersSequence_new/25.jpg')
-	Nine = character("9", 'Final_All_pgm_charachters_inNumbersSequence_new/27.jpg')
-
-
-	One.template =   cv.resize(One.template , dim, interpolation = cv.INTER_AREA)
-	Two.template =   cv.resize(Two.template , dim, interpolation = cv.INTER_AREA)
-	Three.template = cv.resize(Three.template , dim, interpolation = cv.INTER_AREA)
-	Four.template =  cv.resize(Four.template , dim, interpolation = cv.INTER_AREA)
-	Five.template =  cv.resize(Five.template , dim, interpolation = cv.INTER_AREA)
-	Six.template =   cv.resize(Six.template , dim, interpolation = cv.INTER_AREA)
-	Seven.template = cv.resize(Seven.template , dim, interpolation = cv.INTER_AREA)
-	Eight.template = cv.resize(Eight.template , dim, interpolation = cv.INTER_AREA)
-	Nine.template =  cv.resize(Nine.template , dim, interpolation = cv.INTER_AREA)
-
-
-	One.corr, One.col_sum = char_calculations(One.template, HEIGHT, WIDTH)
-	Two.corr, Two.col_sum = char_calculations(Two.template, HEIGHT, WIDTH)
-	Three.corr, Three.col_sum = char_calculations(Three.template, HEIGHT, WIDTH)
-	Four.corr, Four.col_sum = char_calculations(Four.template, HEIGHT, WIDTH)
-	Five.corr, Five.col_sum = char_calculations(Five.template, HEIGHT, WIDTH)
-	Six.corr, Six.col_sum = char_calculations(Six.template, HEIGHT, WIDTH)
-	Seven.corr, Seven.col_sum = char_calculations(Seven.template, HEIGHT, WIDTH)
-	Eight.corr, Eight.col_sum = char_calculations(Eight.template, HEIGHT, WIDTH)
-	Nine.corr, Nine.col_sum = char_calculations(Nine.template, HEIGHT, WIDTH)
-
-	# Add to database
-	database_characters.append(Alf)
-	database_characters.append(Alf2)
-	database_characters.append(Bih)
-	database_characters.append(Dal)
-	database_characters.append(Dal2)
-	database_characters.append(Reh)
-	database_characters.append(Reh2)
-	database_characters.append(Sen)
-	database_characters.append(Kaf)
-	database_characters.append(Kaf2)
-	database_characters.append(Mim)
-	database_characters.append(Tah)
-	database_characters.append(Sad)
-	database_characters.append(Waw)
-	database_characters.append(Waw2)
-	database_characters.append(Gem)
-	database_characters.append(Lam)
-	# database_characters.append(Lam2)
-	database_characters.append(Yeh)
-	database_characters.append(Non)
-	database_characters.append(Non2)
-	database_characters.append(Ein)
-	database_characters.append(Heh)
-	database_characters.append(Heh2)
-	database_characters.append(Heh3)
-	database_characters.append(Fih)
-	database_characters.append(Fih2)
-	database_characters.append(Yeh)
-
-
-	database_characters.append(One)
-	database_characters.append(Two)
-	database_characters.append(Three)
-	database_characters.append(Four)
-	database_characters.append(Five)
-	database_characters.append(Six)
-	database_characters.append(Seven)
-	database_characters.append(Eight)
-	database_characters.append(Nine)
 
 
 @jit(nopython=True,parallel=True)
@@ -653,27 +335,27 @@ def getSimilarity(img1, img2 ):
     return sim
 
 
-def get_image_char(image):
+def get_image_char(image, charactersDB):
     unkChar = character('Unk', img = image)
     r = 500000000000
     curr_r = 500000000000
-    for j in database_characters:
+    for j in charactersDB:
         curr_r = similarity = getSimilarity(unkChar.template,j.template)
         if curr_r < r:
             unkChar.char = j.char
             r = curr_r
-    return unkChar.char
+    return unkChar.char.split('_')[0]
 
 
-def get_plate_text_from_char_images(imgs):
+def get_plate_text_from_char_images(imgs, charactersDB):
     plate = ""
     for img in imgs:
-        unkChar = get_image_char(img)
+        unkChar = get_image_char(img, charactersDB)
         plate = plate + unkChar + " "
     return plate
 
 
-def vote_plate_text_for_video(plateText):
+def vote_plate_text_for_video(plateText, videoPlateTexts):
     if plateText in videoPlateTexts:
         videoPlateTexts[plateText]+=1
     else:
@@ -689,19 +371,19 @@ def vote_plate_text_for_video(plateText):
     return bestPlateText
 
 
-def get_plate_text_from_image(image):
+def get_plate_text_from_image(image, hamzaNo2taDB, barNesrDB, charactersDB):
     plateText = ""
     if image is not None:
         plate, flag = localization(image)
         if(flag):
-            charsImages = get_chars_images_from_plate_image(cv.cvtColor(plate,cv.COLOR_BGR2GRAY))
-            plateText = get_plate_text_from_char_images(charsImages)
+            charsImages = get_chars_images_from_plate_image(cv.cvtColor(plate,cv.COLOR_BGR2GRAY), hamzaNo2taDB, barNesrDB)
+            plateText = get_plate_text_from_char_images(charsImages, charactersDB)
             print("plateText is " + plateText)
         cv.imshow("Localization",plate)
     return plateText
 
 
-def get_plate_text_from_video(videoCapture):
+def get_plate_text_from_video(videoCapture, hamzaNo2taDB, barNesrDB, charactersDB, videoPlateTexts):
     bestPlateText = ""
     if (videoCapture.isOpened()== False): 
         print("Error opening video stream or file")
@@ -709,8 +391,8 @@ def get_plate_text_from_video(videoCapture):
         #get the Frame from video
         _, img = videoCapture.read()
         if img is not None:
-            plateText = get_plate_text_from_image(img)
-            bestPlateText = vote_plate_text_for_video(plateText)
+            plateText = get_plate_text_from_image(img, hamzaNo2taDB, barNesrDB, charactersDB)
+            bestPlateText = vote_plate_text_for_video(plateText, videoPlateTexts)
         else:
             break
         if cv.waitKey(1) & 0xFF == ord('q'):
@@ -718,8 +400,9 @@ def get_plate_text_from_video(videoCapture):
     return bestPlateText
 
 
-def process_video(fileName):
-	videoCapture = cv.VideoCapture(fileName)
-	get_plate_text_from_video(videoCapture) 
-	videoCapture.release();
-	cv.destroyAllWindows();
+def process_video(fileName, hamzaNo2taDB, barNesrDB, charactersDB):
+    videoPlateTexts = {}
+    videoCapture = cv.VideoCapture(fileName)
+    get_plate_text_from_video(videoCapture, hamzaNo2taDB, barNesrDB, charactersDB, videoPlateTexts) 
+    videoCapture.release()
+    cv.destroyAllWindows()
