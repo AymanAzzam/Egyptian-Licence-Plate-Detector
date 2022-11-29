@@ -3,7 +3,7 @@ import numpy as np
 from numba import jit
 from commonfunctions import *
 from tkinter import *
-from consts import WIDTH_J, HEIGHT_J
+import consts as c
 import math
 smalls = []
 
@@ -69,7 +69,7 @@ def plate_criteria(cum_white, cum_blue, x, y, w, h, aspect_min, aspect_max, far)
         if(area >= cum_white.shape[0] * cum_white.shape[1] * far): #check far or not
             white_ratio = sum_range(cum_white, Xmin, Ymin, Xmax, Ymax)/area*100
             blue_ratio = sum_range(cum_blue, Xmin, Ymin, Xmax, Ymax)/area*100
-            if(white_ratio > 35 and white_ratio < 90 and blue_ratio > 7 and blue_ratio < 40):
+            if(white_ratio > c.PLATE_MIN_WHITE and white_ratio < c.PLATE_MAX_WHITE and blue_ratio > c.PLATE_MIN_BLUE and blue_ratio < c.PLATE_MAX_BLUE):
                 return True
     return False
 
@@ -142,11 +142,11 @@ def localization(img): #take BGR image and return BGR image
 
     ret,bin_img = binarization_otsu(closing)
 
-    plate_area_img,flag = plate_contour(img, bin_img, 1.4, 2.5, 0.01) 
+    plate_area_img,flag = plate_contour(img, bin_img, c.PLATE_MIN_ASPECT_FAR, c.PLATE_MAX_ASPECT_FAR, c.PLATE_FAR) 
 
     plate_area_img_bin = cv.adaptiveThreshold(cv.cvtColor(255-plate_area_img,cv.COLOR_BGR2GRAY),255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,11,8)
 
-    plate_img,flag2 = plate_contour(plate_area_img, plate_area_img_bin, 1, 2.1, 0.1) 
+    plate_img,flag2 = plate_contour(plate_area_img, plate_area_img_bin, c.PLATE_MIN_ASPECT_NEAR, c.PLATE_MAX_ASPECT_NEAR, c.PLATE_NEAR) 
     cropped = np.copy(plate_img)
     if(flag):
         #rotated = rotate_blue(plate_img)
@@ -181,8 +181,8 @@ def sort_contours(cnts, method="left-to-right"):
 
 def isMiniLiter(imgI, hamzaNo2taDB):
     letter = character('unk',img = imgI)
-    letter.template = my_resize(letter.template,WIDTH_J,HEIGHT_J)
-    letter.corr, letter.col_sum = char_calculations(letter.template,HEIGHT_J,WIDTH_J)
+    letter.template = my_resize(letter.template,c.WIDTH_J,c.HEIGHT_J)
+    letter.corr, letter.col_sum = char_calculations(letter.template,c.HEIGHT_J,c.WIDTH_J)
     for l in hamzaNo2taDB:
         temp1 = letter.template.astype(np.float32)
         temp2 = l.template.astype(np.float32)
@@ -200,8 +200,8 @@ def isMiniLiter(imgI, hamzaNo2taDB):
 
 def isBar(imgI, barNesrDB):
     letter = character('unk',img = imgI)
-    letter.template = my_resize(letter.template,WIDTH_J,HEIGHT_J)
-    letter.corr, letter.col_sum =char_calculations(letter.template,HEIGHT_J,WIDTH_J)
+    letter.template = my_resize(letter.template,c.WIDTH_J,c.HEIGHT_J)
+    letter.corr, letter.col_sum =char_calculations(letter.template,c.HEIGHT_J,c.WIDTH_J)
     for l in barNesrDB:
         temp1 = letter.template.astype(np.float32)
         temp2 = l.template.astype(np.float32)
