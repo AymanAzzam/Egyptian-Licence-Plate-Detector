@@ -211,7 +211,7 @@ def isBar(imgI, barNesrDB):
         hist2=cv.calcHist([temp2],[0],None,[256],[0,256]) 
         r = cv.compareHist(hist1, hist2, method = cv.HISTCMP_CORREL)
         rCorr = cal_corr(letter.corr,l.corr,letter.col_sum,l.col_sum)
-        if(rCorr>.8 and r > .8):
+        if(rCorr>.9 and r > .9):
             return True
     return False
 
@@ -269,7 +269,7 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
     mendol = []
     mendolc = []
     T = False
-    # img2 = np.copy(imgI)
+    img2 = np.copy(imgI)
     for contour in contours:
         x,y,w,h = rect = cv.boundingRect(contour)
         # print(x,y,w,h)
@@ -309,13 +309,13 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
             mendol.append(rect)
             conts.append(contour)
     for rect in rects:
-        # cv.rectangle(img2, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]), (255,0,0), 2)
         imgX = None
         imgX = np.copy(imgI[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]])
         if imgX is not None:
-            # if(not isBar(imgX, barNesrDB)):
-            imgs.append(imgX)
-    # cv.imshow("contours image", img2)
+            if(not isBar(imgX, barNesrDB)):
+                cv.rectangle(img2, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]), (255,0,0), 2)
+                imgs.append(imgX)
+    cv.imshow("contours image", img2)
     # cv.waitKey(0)
     if len(imgs) < c.MIN_NUM_OF_PLATE_CHAR:
         return []
