@@ -256,8 +256,8 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
     k1=cv.getStructuringElement(cv.MORPH_RECT,(10,15))
     k2=cv.getStructuringElement(cv.MORPH_RECT,(5,5))
 
-    c =  cv.morphologyEx(imgO, cv.MORPH_CLOSE, k2)
-    o =  cv.morphologyEx(c, cv.MORPH_OPEN, k1)
+    cMorph =  cv.morphologyEx(imgO, cv.MORPH_CLOSE, k2)
+    o =  cv.morphologyEx(cMorph, cv.MORPH_OPEN, k1)
     contours, hierarchy = cv.findContours(o, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     contours = sort_contours(contours)[0]
     d = np.ones_like(imgI)
@@ -269,9 +269,15 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
     mendol = []
     mendolc = []
     T = False
+    # img2 = np.copy(imgI)
     for contour in contours:
         x,y,w,h = rect = cv.boundingRect(contour)
-        if(y>300 and x > 50 and y+h<750 and cv.contourArea(contour) > 29*29 and y < 575 and cv.contourArea(contour) <100000):#and cv.contourArea(contour)>2000):
+        # print(x,y,w,h)
+        # continue
+        # if(True):
+        if(y > c.CHAR_MIN_Y1 and y < c.CHAR_MAX_Y1 and h > c.CHAR_MIN_HEIGHT and x > c.CHAR_MIN_X and \
+            cv.contourArea(contour) > c.CHAR_MIN_AREA and cv.contourArea(contour) < c.CHAR_MAX_AREA):
+            # cv.rectangle(img2, (x, y), (x+w, y+h), (255,0,0), 2)
             mendolc.append(contour)
             for i,r in enumerate(rects):
                 if(x-20<r[0] and x+w+20 > r[0]+r[2])or (x>r[0]-20 and x+w-20 < r[0]+r[2]):
@@ -303,11 +309,16 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
             mendol.append(rect)
             conts.append(contour)
     for rect in rects:
+        # cv.rectangle(img2, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]), (255,0,0), 2)
         imgX = None
-        imgX = np.copy(imgI[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]]);
+        imgX = np.copy(imgI[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]])
         if imgX is not None:
-            if(not isBar(imgX, barNesrDB)):
-                imgs.append(imgX)
+            # if(not isBar(imgX, barNesrDB)):
+            imgs.append(imgX)
+    # cv.imshow("contours image", img2)
+    # cv.waitKey(0)
+    if len(imgs) < c.MIN_NUM_OF_PLATE_CHAR:
+        return []
     return imgs
 
 
@@ -375,10 +386,9 @@ def get_plate_text_from_image(image, hamzaNo2taDB, barNesrDB, charactersDB):
     plateText = ""
     if image is not None:
         plate, flag = localization(image)
-        if(flag):
-            charsImages = get_chars_images_from_plate_image(cv.cvtColor(plate,cv.COLOR_BGR2GRAY), hamzaNo2taDB, barNesrDB)
-            plateText = get_plate_text_from_char_images(charsImages, charactersDB)
-            print("plateText is " + plateText)
+        charsImages = get_chars_images_from_plate_image(cv.cvtColor(plate,cv.COLOR_BGR2GRAY), hamzaNo2taDB, barNesrDB)
+        plateText = get_plate_text_from_char_images(charsImages, charactersDB)
+        print("plateText is " + plateText)
         cv.imshow("Localization",plate)
     return plateText
 
