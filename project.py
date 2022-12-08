@@ -272,6 +272,8 @@ def get_chars_images_from_plate_image(imgI, hamzaNo2taDB, barNesrDB):
     img2 = np.copy(imgI)
     for contour in contours:
         x,y,w,h = rect = cv.boundingRect(contour)
+        # cv.rectangle(img2, (x, y), (x+w, y+h), (255,0,0), 2)
+        # continue
         # print(x,y,w,h)
         # continue
         # if(True):
