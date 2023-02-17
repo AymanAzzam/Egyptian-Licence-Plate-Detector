@@ -1,5 +1,5 @@
 # Egyptian Licence Plate Detector
-Image processing project with Python and openCV. it detects the Egyptian Licence Plate and show it then Recognize and extract the numbers and letters from it and print them in terminal.
+Image processing project with Python and openCV. it detects the Egyptian License Plate and shows it then Recognizes and extracts the numbers and letters from it and prints them in terminal.
 
 ### Requirements
 	1. Python 3.
